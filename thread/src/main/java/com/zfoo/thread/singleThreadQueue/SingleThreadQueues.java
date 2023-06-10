@@ -25,7 +25,7 @@ public class SingleThreadQueues {
 
   private void checkLen(SingleThreadGroup groupType) {
     int threadCount = groupType.getThreadCount();
-    Assert.isTrue((19 % threadCount) == (19 &(threadCount-1)), groupType.getName()+" 单任务线程队列的线程个数必须是2的幂次方倍， 现在是= "+threadCount);
+    Assert.isTrue((threadCount>0) &&  (0 == (threadCount & (threadCount-1)) ), groupType.getName()+" 单任务线程队列的线程个数必须是2的幂次方倍， 现在是= "+threadCount);
   }
 
   /**
