@@ -13,6 +13,7 @@
     <properties>
         <zfoo.boot.version>3.0</zfoo.boot.version>
         <zfoo.event.version>3.0</zfoo.event.version>
+        <zfoo.common.version>3.0</zfoo.common.version>
         <zfoo.hotswap.version>3.0</zfoo.hotswap.version>
         <zfoo.monitor.version>3.0</zfoo.monitor.version>
         <zfoo.net.version>3.0</zfoo.net.version>
@@ -21,6 +22,7 @@
         <zfoo.orm.version>3.0</zfoo.orm.version>
         <zfoo.protocol.version>3.0</zfoo.protocol.version>
         <zfoo.util.version>3.0</zfoo.util.version>
+        <zfoo.thread.version>3.0</zfoo.thread.version>
 
         <!-- spring and spring boot -->
         <spring.version>5.3.19</spring.version>
@@ -74,6 +76,11 @@
     </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>com.zfoo</groupId>
+            <artifactId>trhead</artifactId>
+            <version>${zfoo.thread.version}</version>
+        </dependency>
         <dependency>
             <groupId>com.zfoo</groupId>
             <artifactId>util</artifactId>

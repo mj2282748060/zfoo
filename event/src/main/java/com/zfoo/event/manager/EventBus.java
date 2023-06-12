@@ -12,28 +12,26 @@
  */
 package com.zfoo.event.manager;
 
+import com.zfoo.event.model.anno.Bus;
 import com.zfoo.event.model.event.IEvent;
 import com.zfoo.event.model.vo.IEventReceiver;
 import com.zfoo.protocol.collection.CollectionUtils;
 import com.zfoo.protocol.collection.concurrent.CopyOnWriteHashMapLongObject;
-import com.zfoo.protocol.util.AssertionUtils;
-import com.zfoo.protocol.util.StringUtils;
+import com.zfoo.thread.IThreadGroup;
+import com.zfoo.thread.ThreadContext;
+import com.zfoo.thread.manager.IThreadBalanceExecutor;
 import com.zfoo.util.SafeRunnable;
-import com.zfoo.util.ThreadUtils;
 import com.zfoo.util.math.RandomUtils;
-import io.netty.util.concurrent.FastThreadLocalThread;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author godotg
@@ -43,51 +41,11 @@ public abstract class EventBus {
 
     private static final Logger logger = LoggerFactory.getLogger(EventBus.class);
 
-    /**
-     * EN: The size of the thread pool. Event's thread pool is often used to do time-consuming operations, so set it a little bigger
-     * CN: 线程池的大小. event的线程池经常用来做一些耗时的操作，所以要设置大一点
-     */
-    public static final int EXECUTORS_SIZE = Runtime.getRuntime().availableProcessors() * 2;
-
-    private static final ExecutorService[] executors = new ExecutorService[EXECUTORS_SIZE];
-
-    private static final CopyOnWriteHashMapLongObject<ExecutorService> threadMap = new CopyOnWriteHashMapLongObject<>(EXECUTORS_SIZE);
+    private static final CopyOnWriteHashMapLongObject<ExecutorService> threadMap = new CopyOnWriteHashMapLongObject<>();
     /**
      * event mapping
      */
     private static final Map<Class<? extends IEvent>, List<IEventReceiver>> receiverMap = new HashMap<>();
-
-    static {
-        for (int i = 0; i < executors.length; i++) {
-            var namedThreadFactory = new EventThreadFactory(i);
-            var executor = Executors.newSingleThreadExecutor(namedThreadFactory);
-            executors[i] = executor;
-        }
-    }
-
-    public static class EventThreadFactory implements ThreadFactory {
-        private final int poolNumber;
-        private final AtomicInteger threadNumber = new AtomicInteger(1);
-        private final ThreadGroup group;
-
-        public EventThreadFactory(int poolNumber) {
-            this.group = ThreadUtils.currentThreadGroup();
-            this.poolNumber = poolNumber;
-        }
-
-        @Override
-        public Thread newThread(Runnable runnable) {
-            var threadName = StringUtils.format("event-p{}-t{}", poolNumber + 1, threadNumber.getAndIncrement());
-            var thread = new FastThreadLocalThread(group, runnable, threadName);
-            thread.setDaemon(false);
-            thread.setPriority(Thread.NORM_PRIORITY);
-            thread.setUncaughtExceptionHandler((t, e) -> logger.error(t.toString(), e));
-            var executor = executors[poolNumber];
-            AssertionUtils.notNull(executor);
-            threadMap.put(thread.getId(), executor);
-            return thread;
-        }
-    }
 
     /**
      * Publish the event
@@ -101,16 +59,17 @@ public abstract class EventBus {
         if (CollectionUtils.isEmpty(receivers)) {
             return;
         }
+
         for (var receiver : receivers) {
             switch (receiver.bus()) {
-                case CurrentThread:
+                case CURRENT_THREAD:
                     doReceiver(receiver, event);
-                    break;
-                case AsyncThread:
-                    execute(event.executorHash(), () -> doReceiver(receiver, event));
                     break;
                 case VirtualThread:
                     logger.error("waiting for java 21 virtual thread");
+                    break;
+                default:
+                    execute(receiver.bus(), event.executorHash(), () -> doReceiver(receiver, event));
                     break;
             }
         }
@@ -128,14 +87,19 @@ public abstract class EventBus {
 
 
     public static void asyncExecute(Runnable runnable) {
-        execute(RandomUtils.randomInt(), runnable);
+        execute(Bus.RANDOM_THREAD, RandomUtils.randomInt(), runnable);
     }
 
     /**
      * Use the event thread specified by the hashcode to execute the task
      */
-    public static void execute(int executorHash, Runnable runnable) {
-        executors[Math.abs(executorHash % EXECUTORS_SIZE)].execute(SafeRunnable.valueOf(runnable));
+    public static void execute(Bus bus, long executorHash, Runnable runnable) {
+        IThreadGroup threadGroup = bus.getThreadGroup();
+        if (threadGroup == null) {
+            logger.error("事件异步执行错误， 线程组不能为空 ，busName= {}", bus.name());
+            return;
+        }
+        ThreadContext.getIBusinessExecutor().execute(threadGroup, executorHash, runnable);
     }
 
     /**
@@ -146,7 +110,14 @@ public abstract class EventBus {
     }
 
     public static Executor threadExecutor(long currentThreadId) {
+//        todo 这里有问题， net那边也要改
         return threadMap.getPrimitive(currentThreadId);
+    }
+
+    public static void sortReceiver() {
+        for (List<IEventReceiver> receiverList : receiverMap.values()) {
+            receiverList.sort(Comparator.comparingInt(IEventReceiver::order));
+        }
     }
 }
 

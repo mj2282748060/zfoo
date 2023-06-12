@@ -33,7 +33,7 @@ public class MyController2 {
      *
      * 异步事件会被不会立刻执行，注意日志打印的线程号
      */
-    @EventReceiver(Bus.AsyncThread)
+    @EventReceiver(value = Bus.ROLE_THREAD)
     public void onMyNoticeEvent(MyNoticeEvent event) {
         logger.info("方法2异步执行事件：" + event.getMessage());
     }

@@ -37,8 +37,7 @@ public interface IEvent {
      *
      * @return 线程池的执行的一个参数
      */
-    default int executorHash() {
-        return RandomUtils.randomInt();
+    default long executorHash() {
+        return RandomUtils.randomLong();
     }
-
 }

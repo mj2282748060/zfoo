@@ -1,5 +1,7 @@
 package com.zfoo.thread.enums;
 
+import com.zfoo.thread.IThreadGroup;
+
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -8,7 +10,7 @@ import java.util.concurrent.TimeUnit;
 /**
  *任务随机分给池内线程执行
  */
-public enum RandomThreadGroup {
+public enum RandomThreadGroup implements IThreadGroup {
     RANDOM("random"),
     ;
 
@@ -33,5 +35,15 @@ public enum RandomThreadGroup {
     public ExecutorService instance() {
         int processors = Runtime.getRuntime().availableProcessors();
         return new ThreadPoolExecutor(processors, processors<<2, 10, TimeUnit.MINUTES, new LinkedBlockingQueue<>());
+    }
+
+    @Override
+    public int groupKey() {
+        return this.ordinal();
+    }
+
+    @Override
+    public int groupType() {
+        return RANDOM_TYPE;
     }
 }

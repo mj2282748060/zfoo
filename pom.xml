@@ -23,6 +23,7 @@
 
     <modules>
         <module>boot</module>
+        <module>thread</module>
         <module>event</module>
         <module>hotswap</module>
         <module>monitor</module>
@@ -32,6 +33,7 @@
         <module>orm</module>
         <module>protocol</module>
         <module>util</module>
+        <module>common</module>
     </modules>
 
     <properties>

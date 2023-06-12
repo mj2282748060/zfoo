@@ -13,6 +13,7 @@
 package com.zfoo.net.router;
 
 import com.zfoo.event.manager.EventBus;
+import com.zfoo.event.model.anno.Bus;
 import com.zfoo.net.router.attachment.SignalAttachment;
 import com.zfoo.net.router.route.SignalBridge;
 import com.zfoo.scheduler.util.TimeUtils;
@@ -29,7 +30,6 @@ import java.util.concurrent.CountDownLatch;
 @Ignore
 public class SignalBridgeTest {
 
-    private final int executorSize = EventBus.EXECUTORS_SIZE;
     private final int count = 100_0000;
     private final int totalIndex = 10;
 
@@ -45,9 +45,9 @@ public class SignalBridgeTest {
     public void arrayTest() throws InterruptedException {
         var startTime = TimeUtils.currentTimeMillis();
 
-        var countDownLatch = new CountDownLatch(executorSize);
-        for (var i = 0; i < executorSize; i++) {
-            EventBus.execute(i, new Runnable() {
+        var countDownLatch = new CountDownLatch(10);
+        for (var i = 0; i < 10; i++) {
+            EventBus.execute(Bus.ROLE_THREAD, i, new Runnable() {
                 @Override
                 public void run() {
                     addAndRemoveArray();

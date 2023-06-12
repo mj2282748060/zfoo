@@ -14,6 +14,7 @@
 package com.zfoo.orm.cache.persister;
 
 import com.zfoo.event.manager.EventBus;
+import com.zfoo.event.model.anno.Bus;
 import com.zfoo.orm.OrmContext;
 import com.zfoo.orm.cache.EntityCaches;
 import com.zfoo.orm.model.vo.EntityDef;
@@ -76,7 +77,7 @@ public class CronOrmPersister extends AbstractOrmPersister {
         if (!OrmContext.isStop()) {
             SchedulerBus.schedule(() -> {
                 if (!OrmContext.isStop()) {
-                    EventBus.execute(entityDef.getClazz().hashCode(), () -> {
+                    EventBus.execute(Bus.RANDOM_THREAD, entityDef.getClazz().hashCode(), () -> {
                         entityCaches.persistAll();
                         schedulePersist();
                     });

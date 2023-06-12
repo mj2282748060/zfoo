@@ -23,6 +23,7 @@ import java.lang.annotation.*;
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.METHOD})
-public @interface EventReceiver {
-    Bus value() default Bus.CurrentThread;
+public @interface EventReceiver{
+    Bus value() default Bus.CURRENT_THREAD;
+    int order() default Integer.MAX_VALUE;
 }

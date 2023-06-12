@@ -36,4 +36,9 @@ public class MyNoticeEvent implements IEvent {
     public void setMessage(String message) {
         this.message = message;
     }
+
+    @Override
+    public long executorHash() {
+        return message.hashCode();
+    }
 }

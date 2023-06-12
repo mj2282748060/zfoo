@@ -1,12 +1,14 @@
 package com.zfoo.thread.enums;
 
+import com.zfoo.thread.IThreadGroup;
+
 /**
  * 固定的任务key, 分给池内固定线程执行
  */
-public enum SingleThreadGroup {
+public enum SingleThreadGroup implements IThreadGroup {
     LOGIN("login",1),
 
-    ROLES("role", Runtime.getRuntime().availableProcessors()<<1),
+    ROLES("role", 8),
     ;
 
 
@@ -36,5 +38,15 @@ public enum SingleThreadGroup {
 
     public int getThreadCount() {
         return threadCount;
+    }
+
+    @Override
+    public final int groupKey() {
+        return this.ordinal();
+    }
+
+    @Override
+    public final int groupType() {
+        return SINGLE_TYPE;
     }
 }

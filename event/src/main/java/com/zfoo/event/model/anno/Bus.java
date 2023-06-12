@@ -12,18 +12,33 @@
  */
 package com.zfoo.event.model.anno;
 
+import com.zfoo.thread.IThreadGroup;
+import com.zfoo.thread.enums.RandomThreadGroup;
+import com.zfoo.thread.enums.SingleThreadGroup;
+
 /**
- * event bus thread type
  *
- * @author godotg
- * @version 3.0
  */
 public enum Bus {
 
-    CurrentThread,
+    CURRENT_THREAD(null),
 
-    AsyncThread,
+    ROLE_THREAD(SingleThreadGroup.ROLES),
 
-    VirtualThread;
+    RANDOM_THREAD(RandomThreadGroup.RANDOM),
+
+    VirtualThread(null),
+    ;
+
+    final IThreadGroup threadGroup;
+
+    Bus(IThreadGroup threadGroup) {
+        this.threadGroup = threadGroup;
+    }
+
+    public IThreadGroup getThreadGroup() {
+        return threadGroup;
+    }
+
 
 }

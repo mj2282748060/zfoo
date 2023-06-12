@@ -21,7 +21,9 @@ import com.zfoo.event.model.event.IEvent;
  * @version 3.0
  */
 public interface IEventReceiver {
-    Bus bus();
+    default Bus bus(){return Bus.CURRENT_THREAD;}
+
+    default int order(){return Integer.MAX_VALUE;}
 
     void invoke(IEvent event);
 }

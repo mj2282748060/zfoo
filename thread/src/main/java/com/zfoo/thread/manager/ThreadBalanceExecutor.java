@@ -1,5 +1,6 @@
 package com.zfoo.thread.manager;
 
+import com.zfoo.thread.IThreadGroup;
 import com.zfoo.thread.enums.RandomThreadGroup;
 import com.zfoo.thread.enums.ScheduleThreadGroup;
 import com.zfoo.thread.enums.SingleThreadGroup;
@@ -148,5 +149,20 @@ public class ThreadBalanceExecutor implements IThreadBalanceExecutor {
     }
 
     return randomGroups[randomThreadGroup.ordinal()];
+  }
+
+  @Override
+  public void execute(IThreadGroup threadGroup, long executorHash, Runnable runnable) {
+      if (threadGroup == null) {
+        return;
+      }
+
+     if (threadGroup instanceof SingleThreadGroup) {
+       addTask2SingleGroup((SingleThreadGroup) threadGroup, executorHash, runnable);
+     }else if (threadGroup instanceof RandomThreadGroup) {
+       randomPool((RandomThreadGroup) threadGroup).execute(runnable);
+     }else if (threadGroup instanceof ScheduleThreadGroup) {
+       schedulePool((ScheduleThreadGroup) threadGroup).execute(runnable);
+    }
   }
 }

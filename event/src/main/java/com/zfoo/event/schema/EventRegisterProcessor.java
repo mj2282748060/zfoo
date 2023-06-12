@@ -80,12 +80,14 @@ public class EventRegisterProcessor implements BeanPostProcessor {
                 }
 
                 var bus = method.getDeclaredAnnotation(EventReceiver.class).value();
-                var receiverDefinition = new EventReceiverDefinition(bean, method, bus, eventClazz);
+                var order = method.getDeclaredAnnotation(EventReceiver.class).order();
+                var receiverDefinition = new EventReceiverDefinition(bean, method, bus, eventClazz, order);
                 var enhanceReceiverDefinition = EnhanceUtils.createEventReceiver(receiverDefinition);
 
                 // key:class类型 value:观察者 注册Event的receiverMap中
                 EventBus.registerEventReceiver(eventClazz, enhanceReceiverDefinition);
             }
+            EventBus.sortReceiver();
         } catch (Throwable t) {
             throw new RuntimeException(t);
         }

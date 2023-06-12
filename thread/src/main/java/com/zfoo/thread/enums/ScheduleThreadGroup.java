@@ -1,12 +1,14 @@
 package com.zfoo.thread.enums;
 
+import com.zfoo.thread.IThreadGroup;
+
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 /**
  *定时任务
  */
-public enum ScheduleThreadGroup {
+public enum ScheduleThreadGroup implements IThreadGroup {
     SCHEDULE("schedule"),
 
     SCHEDULE_TEST("schedule_test"),
@@ -33,5 +35,15 @@ public enum ScheduleThreadGroup {
 
     public ScheduledExecutorService instance() {
         return new ScheduledThreadPoolExecutor(1);
+    }
+
+    @Override
+    public int groupKey() {
+        return this.ordinal();
+    }
+
+    @Override
+    public int groupType() {
+        return SCHEDULE_TYPE;
     }
 }

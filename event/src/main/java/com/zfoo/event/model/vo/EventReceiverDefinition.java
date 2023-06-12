@@ -36,20 +36,28 @@ public class EventReceiverDefinition implements IEventReceiver {
     // 事件接收方式
     private Bus bus;
 
+    private int order;
+
     // 接收的参数Class
     private Class<? extends IEvent> eventClazz;
 
-    public EventReceiverDefinition(Object bean, Method method, Bus bus, Class<? extends IEvent> eventClazz) {
+    public EventReceiverDefinition(Object bean, Method method, Bus bus, Class<? extends IEvent> eventClazz, int order) {
         this.bean = bean;
         this.method = method;
         this.bus = bus;
         this.eventClazz = eventClazz;
+        this.order = order;
         ReflectionUtils.makeAccessible(this.method);
     }
 
     @Override
     public Bus bus() {
         return bus;
+    }
+
+    @Override
+    public int order() {
+        return order;
     }
 
     @Override
@@ -72,6 +80,4 @@ public class EventReceiverDefinition implements IEventReceiver {
     public Class<? extends IEvent> getEventClazz() {
         return eventClazz;
     }
-
-
 }

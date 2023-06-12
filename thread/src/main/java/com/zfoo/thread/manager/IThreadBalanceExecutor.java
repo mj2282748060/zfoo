@@ -1,5 +1,6 @@
 package com.zfoo.thread.manager;
 
+import com.zfoo.thread.IThreadGroup;
 import com.zfoo.thread.enums.RandomThreadGroup;
 import com.zfoo.thread.enums.ScheduleThreadGroup;
 import com.zfoo.thread.enums.SingleThreadGroup;
@@ -56,4 +57,6 @@ public interface IThreadBalanceExecutor {
    * 释放所有线程池
    */
   void  shutdown();
+
+    void execute(IThreadGroup threadGroup, long executorHash, Runnable runnable);
 }

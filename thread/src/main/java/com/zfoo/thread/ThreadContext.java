@@ -51,5 +51,4 @@ public class ThreadContext implements ApplicationContextAware, ApplicationListen
     public static IThreadBalanceExecutor getIBusinessExecutor() {
         return threadBalanceExecutor;
     }
-
 }
