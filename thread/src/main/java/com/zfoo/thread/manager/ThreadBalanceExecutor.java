@@ -66,19 +66,11 @@ public class ThreadBalanceExecutor implements IThreadBalanceExecutor {
     if (threadGroup == null || runnable == null) {
       return;
     }
-    if (threadGroup.isSingle() && executorHash >= 0) {
-      IThreadExecutor executor = threadExecutors[threadGroup.ordinal()];
-      if (executor instanceof SingleThreadQueues singleThreadQueues) {
-        singleThreadQueues.getByMod(executorHash).execute(runnable);
-      }
-      return;
-    }
-
-    Executor executor = executor(threadGroup);
+    IThreadExecutor executor = executor(threadGroup);
     if (executor == null) {
       return;
     }
-    executor.execute(runnable);
+    executor.executeTask(executorHash, runnable);
   }
 
   @Override

@@ -74,4 +74,9 @@ public class SingleThreadQueues implements  IThreadExecutor{
     }
     getByMod(command.hashCode()).execute(command);
   }
+
+  @Override
+  public void executeTask(long executorHash, Runnable runnable) {
+    getByMod(executorHash).execute(runnable);
+  }
 }

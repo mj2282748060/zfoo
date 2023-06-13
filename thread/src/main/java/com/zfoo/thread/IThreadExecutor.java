@@ -25,4 +25,5 @@ public  interface IThreadExecutor extends Executor {
      */
     ThreadGroupEnum threadGroup();
 
-    }
+    default void executeTask(long executorHash, Runnable runnable){execute(runnable);}
+}
