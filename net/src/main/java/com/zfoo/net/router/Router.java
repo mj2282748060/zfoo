@@ -269,9 +269,9 @@ public class Router implements IRouter {
                             }
                         }
 
-                    }, TaskBus.currentThreadExecutor());
+                    }, TaskBus.currentThreadExecutor(argument));
 
-
+            
             SignalBridge.addSignalAttachment(clientSignalAttachment);
 
             // 等到上层调用whenComplete才会发送消息

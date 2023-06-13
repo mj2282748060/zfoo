@@ -155,21 +155,26 @@ public final class TaskBus {
         }
     }
 
-    public static int calTaskExecutorHash(int taskExecutorHash) {
+    public static int calTaskExecutorHash(long taskExecutorHash) {
         // Other hash algorithms can be customized to make the distribution more uniform
-        return Math.abs(taskExecutorHash) % EXECUTOR_SIZE;
+        return (int) (Math.abs(taskExecutorHash) % EXECUTOR_SIZE);
     }
 
     public static int calTaskExecutorHash(Object argument) {
-        var hash = 0;
-        if (argument == null) {
-            hash = RandomUtils.randomInt();
-        } else if (argument instanceof Number) {
-            hash = ((Number) argument).intValue();
-        } else {
-            hash = argument.hashCode();
-        }
+        long hash = object2Long(argument);
         return calTaskExecutorHash(hash);
+    }
+
+    private static long object2Long(Object argument) {
+        long key;
+        if (argument == null) {
+            key = RandomUtils.randomInt();
+        } else if (argument instanceof Number) {
+            key = ((Number) argument).longValue();
+        } else {
+            key = argument.hashCode();
+        }
+        return key;
     }
 
     public static void execute(int taskExecutorHash, Runnable runnable) {
@@ -181,14 +186,14 @@ public final class TaskBus {
     }
 
     // 在task，event，scheduler线程执行的异步请求，请求成功过后依然在相同的线程执行回调任务
-    public static Executor currentThreadExecutor() {
+    public static Executor currentThreadExecutor(Object key) {
         var threadId = Thread.currentThread().getId();
         var taskExecutor = threadMap.getPrimitive(threadId);
         if (taskExecutor != null) {
             return taskExecutor;
         }
 
-        var eventExecutor = EventBus.threadExecutor(threadId);
+        var eventExecutor = EventBus.threadExecutor(threadId, object2Long(key));
         if (eventExecutor != null) {
             return eventExecutor;
         }

@@ -1,45 +1,38 @@
 package com.zfoo.thread.singleThreadQueue;
 
-import com.zfoo.thread.enums.SingleThreadGroup;
+import com.zfoo.thread.IThreadExecutor;
+import com.zfoo.thread.enums.ThreadGroupEnum;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.util.Assert;
 
+import java.util.concurrent.Executor;
 
-public class SingleThreadQueues {
+
+public class SingleThreadQueues implements  IThreadExecutor{
   private static final Logger logger = LogManager.getLogger(SingleThreadQueues.class);
-  private final SingleThreadQueue[] singleThreadQueues;
+  private final DisruptorWrapper[] singleThreadQueues;
   private  final  long LEN;
-  private  final  String NAME_LIMIT = "_";
+  private  final ThreadGroupEnum groupType;
 
-  public SingleThreadQueues(SingleThreadGroup groupType) {
+  public SingleThreadQueues(ThreadGroupEnum groupType) {
     checkLen(groupType);
     LEN = groupType.getThreadCount();
-    singleThreadQueues = new SingleThreadQueue[(int) LEN];
-    String namePre = groupType.getName() + NAME_LIMIT;
+    this.groupType = groupType;
+    singleThreadQueues = new DisruptorWrapper[(int) LEN];
+    ThreadGroup threadGroup = new ThreadGroup(groupType.getName());
     for (int i = 0; i < LEN; i++) {
-      singleThreadQueues[i] = createSingleThreadQueue(i,  namePre + i);
+      singleThreadQueues[i] =  new DisruptorWrapper(i, groupType.getName() + NAME_LIMIT+i, threadGroup);
     }
     logger.info("{}线程池创建完成， 线程队列个数={}", groupType.getName(), LEN);
   }
 
-  private void checkLen(SingleThreadGroup groupType) {
+  private void checkLen(ThreadGroupEnum groupType) {
     int threadCount = groupType.getThreadCount();
     Assert.isTrue((threadCount>0) &&  (0 == (threadCount & (threadCount-1)) ), groupType.getName()+" 单任务线程队列的线程个数必须是2的幂次方倍， 现在是= "+threadCount);
   }
 
-  /**
-   * 此处用Disruptor队列实现 单任务线程队列， 可以采用其他方式实现
-   */
-  private SingleThreadQueue createSingleThreadQueue(int id, String name) {
-    return new DisruptorWrapper(id,  name);
-  }
-
-  public void addTask(long key, Runnable r) {
-     getByMod(key).addTask(r);
-  }
-
-  public SingleThreadQueue getByMod(long key) {
+  public DisruptorWrapper getByMod(long key) {
     int index = (int) (key & (LEN-1));
     return singleThreadQueues[index];
   }
@@ -49,8 +42,36 @@ public class SingleThreadQueues {
   }
 
   public void shutdown() {
-    for (SingleThreadQueue d : singleThreadQueues) {
+    for (DisruptorWrapper d : singleThreadQueues) {
       d.shutdown();
     }
+  }
+
+  @Override
+  public Executor runThread(long threadId, long key) {
+    DisruptorWrapper wrapper = getByMod(key);
+    if (wrapper.thread.getId() == threadId) {
+      return wrapper;
+    }
+
+    for (DisruptorWrapper threadQueue : singleThreadQueues) {
+      if (threadQueue.thread.getId() == threadId) {
+        return threadQueue;
+      }
+    }
+    return null;
+  }
+
+  @Override
+  public ThreadGroupEnum threadGroup() {
+    return groupType;
+  }
+
+  @Override
+  public void execute(Runnable command) {
+    if (command == null) {
+      return;
+    }
+    getByMod(command.hashCode()).execute(command);
   }
 }

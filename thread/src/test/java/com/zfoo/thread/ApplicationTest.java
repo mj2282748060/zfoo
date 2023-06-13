@@ -12,8 +12,7 @@
  */
 
 package com.zfoo.thread;
-import com.zfoo.thread.enums.RandomThreadGroup;
-import com.zfoo.thread.enums.ScheduleThreadGroup;
+import com.zfoo.thread.enums.ThreadGroupEnum;
 import com.zfoo.thread.manager.IThreadBalanceExecutor;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -39,15 +38,15 @@ public class ApplicationTest {
     public void startThreadTest() {
         var context = new ClassPathXmlApplicationContext("application.xml");
         IThreadBalanceExecutor businessExecutor = context.getBean(IThreadBalanceExecutor.class);
-
+        long key = 66666L;
         Runnable runnable = () -> {
                 // 同一线程的一加一减， 最后值不变就证明我们的无锁化保证线程安全好了
-            businessExecutor.addTask2Role(66666L, () ->{
+            businessExecutor.addTask2Role(key, () ->{
                     test[0]++;
                     Thread thread = Thread.currentThread();
                     logger.info("thread>>>>>>>>> id = {}, name = {}, group ={}, data = {}", thread.getId(), thread.getName(), thread.getThreadGroup(), test[0]);
                 });
-            businessExecutor.addTask2Role(66666L, () ->{
+            businessExecutor.addTask2Role(key, () ->{
                 test[0]--;
                 Thread thread = Thread.currentThread();
                 logger.info("thread>>>>>>>>> id = {}, name = {}, group ={}, data = {}", thread.getId(), thread.getName(), thread.getThreadGroup(),test[0]);
@@ -61,8 +60,8 @@ public class ApplicationTest {
             });
         };
 
-        ScheduledExecutorService s1 = businessExecutor.schedulePool(ScheduleThreadGroup.SCHEDULE);
-        ScheduledExecutorService s2 = businessExecutor.schedulePool(ScheduleThreadGroup.SCHEDULE_TEST);
+        ScheduledExecutorService s1 = businessExecutor.schedulePool(ThreadGroupEnum.SCHEDULE);
+        ScheduledExecutorService s2 = businessExecutor.schedulePool(ThreadGroupEnum.SCHEDULE_TEST);
 
         s1.scheduleAtFixedRate(runnable,0, 20, TimeUnit.MILLISECONDS);
         s2.scheduleAtFixedRate(runnable,1, 18, TimeUnit.MILLISECONDS);
@@ -77,7 +76,7 @@ public class ApplicationTest {
         s1.scheduleAtFixedRate(runnable2,4, 8, TimeUnit.MILLISECONDS);
         s2.scheduleAtFixedRate(runnable2,5, 5, TimeUnit.MILLISECONDS);
 
-        ExecutorService randomPool =  businessExecutor.randomPool(RandomThreadGroup.RANDOM);
+        ExecutorService randomPool =  businessExecutor.randomPool(ThreadGroupEnum.RANDOM);
         randomPool.submit(runnable2);
         randomPool.submit(runnable);
 

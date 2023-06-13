@@ -1,11 +1,8 @@
 package com.zfoo.thread.manager;
 
-import com.zfoo.thread.IThreadGroup;
-import com.zfoo.thread.enums.RandomThreadGroup;
-import com.zfoo.thread.enums.ScheduleThreadGroup;
-import com.zfoo.thread.enums.SingleThreadGroup;
-import com.zfoo.thread.singleThreadQueue.SingleThreadQueue;
-
+import com.zfoo.thread.IThreadExecutor;
+import com.zfoo.thread.enums.ThreadGroupEnum;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -14,34 +11,14 @@ import java.util.concurrent.ScheduledExecutorService;
  */
 public interface IThreadBalanceExecutor {
   /**
-   * 通过定时类型获取对应的定时线程池
-   */
-  ScheduledExecutorService schedulePool(ScheduleThreadGroup schedule);
-
-  /**
-   * 通过随机类型获取对应的随机线程池
-   */
-  ExecutorService randomPool(RandomThreadGroup randomThreadGroup);
-
-  /**
-   * 将任务加入单任务线程任务队列
-   */
-  void addTask2SingleGroup(SingleThreadGroup group, long key, Runnable runnable);
-
-  /**
-   * 获得单任务线程任务队列
-   */
-  SingleThreadQueue singleThreadQueue(SingleThreadGroup group, long key);
-
-  /**
    * 获得登录单任务线程任务队列
    */
-  SingleThreadQueue login();
+  IThreadExecutor login();
 
   /**
    * 获得玩家单任务线程任务队列
    */
-  SingleThreadQueue role(long key);
+  IThreadExecutor role(long key);
 
   /**
    * 加入任务到登录单任务线程任务队列
@@ -58,5 +35,28 @@ public interface IThreadBalanceExecutor {
    */
   void  shutdown();
 
-    void execute(IThreadGroup threadGroup, long executorHash, Runnable runnable);
+  /**
+   * 将任务放入threadGroup对应的线程池， executorHash取模单列线程组值去对应线程执行
+   */
+  void execute(ThreadGroupEnum threadGroup, long executorHash, Runnable runnable);
+
+  /**
+   * threadGroup对应的线程池
+   */
+  IThreadExecutor executor(ThreadGroupEnum threadGroup);
+
+  /**
+   * 入threadGroup对应的线程池， executorHash取模单列线程执行器
+   */
+  Executor takeExecutor(long currentThreadId, long key);
+
+  /**
+   * threadGroup对应的定时线程池
+   */
+  ScheduledExecutorService schedulePool(ThreadGroupEnum schedule);
+
+  /**
+   * threadGroup对应的随机线程池
+   */
+  ExecutorService randomPool(ThreadGroupEnum random);
 }

@@ -4,7 +4,6 @@ package com.zfoo.thread;
 import com.zfoo.thread.manager.IThreadBalanceExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.ApplicationEvent;
@@ -20,12 +19,12 @@ import org.springframework.stereotype.Component;
 @Component
 public class ThreadContext implements ApplicationContextAware, ApplicationListener {
     private static final Logger logger = LoggerFactory.getLogger(ThreadContext.class);
-    private static ThreadContext instance;
-    private static IThreadBalanceExecutor threadBalanceExecutor;
-    private ApplicationContext applicationContext;
+    public static ThreadContext instance;
+    public static IThreadBalanceExecutor threadBalanceExecutor;
+    public ApplicationContext applicationContext;
 
     @Override
-    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+    public void setApplicationContext(ApplicationContext applicationContext){
         instance = this;
         instance.applicationContext = applicationContext;
         threadBalanceExecutor = applicationContext.getBean(IThreadBalanceExecutor.class);

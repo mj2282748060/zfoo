@@ -3,21 +3,24 @@ package com.zfoo.thread.singleThreadQueue;
 import com.lmax.disruptor.ExceptionHandler;
 import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.dsl.Disruptor;
-import com.lmax.disruptor.dsl.EventHandlerGroup;
 import com.zfoo.thread.task.DefaultTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class DisruptorWrapper implements SingleThreadQueue{
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+
+public class DisruptorWrapper implements Executor {
   private static final Logger logger = LoggerFactory.getLogger(DisruptorWrapper.class);
   private static final  int ringBufferSize = 1024*8;
-  public final int id;
+  public  int id;
+  public  Thread thread;
   public final String name;
 
   private final Disruptor<DefaultTask> disruptor;
   private final RingBuffer<DefaultTask> ringBuffer;
 
-  DisruptorWrapper(int id, String name) {
+  DisruptorWrapper(int id, String name, ThreadGroup threadGroup) {
     this.id = id;
     this.name = name;
     this.disruptor =
@@ -25,7 +28,7 @@ public class DisruptorWrapper implements SingleThreadQueue{
                 DefaultTask::new,
                 ringBufferSize,
             r -> {
-              return new Thread(r, name);
+              return new Thread(threadGroup, r, name);
             });
 
       disruptor.handleEventsWith((event, sequence, endOfBatch) -> handleEvent(event));
@@ -49,23 +52,18 @@ public class DisruptorWrapper implements SingleThreadQueue{
 
     this.ringBuffer = disruptor.getRingBuffer();
     disruptor.start();
+    try {
+      this.thread = CompletableFuture.supplyAsync(Thread::currentThread, this).get();
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
     logger.info("Disruptor 线程队列启动， id={}, name={}, ringBufferSize={}", id, name, ringBufferSize);
   }
 
-  @Override
   public void shutdown() {
+    thread = null;
     disruptor.shutdown();
     logger.info("Disruptor 线程队列关闭， id={}, name={}, ringBufferSize={}", id, name, ringBufferSize);
-  }
-
-  @Override
-  public void addTask(Runnable runnable) {
-    long seq = ringBuffer.next();
-    try {
-      ringBuffer.get(seq).setRunnable(runnable);
-    } finally {
-      ringBuffer.publish(seq);
-    }
   }
 
   private void handleEvent(DefaultTask task) {
@@ -80,5 +78,19 @@ public class DisruptorWrapper implements SingleThreadQueue{
 
   private void handleException(Throwable t) {
     logger.error("Disruptor线程{}捕获异常！", this, t);
+  }
+
+  @Override
+  public void execute(Runnable runnable) {
+    if (runnable == null) {
+      return;
+    }
+
+    long seq = ringBuffer.next();
+    try {
+      ringBuffer.get(seq).setRunnable(runnable);
+    } finally {
+      ringBuffer.publish(seq);
+    }
   }
 }

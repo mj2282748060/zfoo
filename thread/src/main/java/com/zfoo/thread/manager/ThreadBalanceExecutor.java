@@ -1,168 +1,131 @@
 package com.zfoo.thread.manager;
 
-import com.zfoo.thread.IThreadGroup;
-import com.zfoo.thread.enums.RandomThreadGroup;
-import com.zfoo.thread.enums.ScheduleThreadGroup;
-import com.zfoo.thread.enums.SingleThreadGroup;
-import com.zfoo.thread.singleThreadQueue.SingleThreadQueue;
+import com.zfoo.thread.IThreadExecutor;
+import com.zfoo.thread.enums.ThreadGroupEnum;
+import com.zfoo.thread.randomThread.RandomExecutor;
+import com.zfoo.thread.schedule.ScheduleExecutor;
 import com.zfoo.thread.singleThreadQueue.SingleThreadQueues;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Component;
-
+import org.springframework.util.Assert;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 
 @Component
 public class ThreadBalanceExecutor implements IThreadBalanceExecutor {
-  private static final Logger logger = LogManager.getLogger(ThreadBalanceExecutor.class);
   /**
-   * 单任务线程池组
+   * 线程池组
    */
-  private  SingleThreadQueues[] singleGroups;
-
-  /**
-   *随机线程池组
-   */
-  private  ExecutorService[] randomGroups;
-
-  /**
-   *定时任务线程池组
-   */
-  private  ScheduledExecutorService[] scheduledGroups;
+  private final IThreadExecutor[] threadExecutors;
 
   public ThreadBalanceExecutor() {
-    SingleThreadGroup[] groupTypes = SingleThreadGroup.values();
-    if (groupTypes.length > 0) {
-      singleGroups = new SingleThreadQueues[groupTypes.length];
-      for (int i = 0; i < groupTypes.length; i++) {
-        singleGroups[i] = new SingleThreadQueues(groupTypes[i]);
-      }
-      logger.info("创建{}个单任务线程池完成", groupTypes.length);
-    }
-
-    RandomThreadGroup[] randomThreadGroups = RandomThreadGroup.values();
-    if (randomThreadGroups.length > 0) {
-      randomGroups = new ExecutorService[randomThreadGroups.length];
-      for (int i = 0; i < randomThreadGroups.length; i++) {
-        randomGroups[i] = randomThreadGroups[i].instance();
-      }
-      logger.info("创建{}个随机任务线程池完成", groupTypes.length);
-    }
-
-    ScheduleThreadGroup[] scheduleThreadGroups = ScheduleThreadGroup.values();
-    if (scheduleThreadGroups.length > 0) {
-      scheduledGroups = new ScheduledExecutorService[scheduleThreadGroups.length];
-      for (int i = 0; i < scheduleThreadGroups.length; i++) {
-        scheduledGroups[i] = scheduleThreadGroups[i].instance();
-      }
-      logger.info("创建{}个定时线程池完成", groupTypes.length);
+    ThreadGroupEnum[] threadGroupEnums = ThreadGroupEnum.values();
+    Assert.isTrue(threadGroupEnums.length > 0, "线程池枚举（ThreadGroupEnum）个数必须大于0");
+    threadExecutors = new IThreadExecutor[threadGroupEnums.length];
+    for (int i = 0; i < threadGroupEnums.length; i++) {
+      threadExecutors[i] = threadGroupEnums[i].instance();
     }
   }
 
   public void shutdown() {
-    if (scheduledGroups != null) {
-      for (ScheduledExecutorService scheduledGroup : scheduledGroups) {
-        scheduledGroup.shutdown();
-      }
-    }
-
-    if (randomGroups != null) {
-      for (ExecutorService randomGroup : randomGroups) {
-        randomGroup.shutdown();
-      }
-    }
-
-    if (singleGroups != null) {
-      for (SingleThreadQueues singleThreadQueues : singleGroups) {
-        singleThreadQueues.shutdown();
-      }
+    for (IThreadExecutor threadExecutor : threadExecutors) {
+      threadExecutor.shutdown();
     }
   }
 
   @Override
-  public SingleThreadQueue role(long key) {
-    if (scheduledGroups == null) {
-      return null;
-    }
-
-    return singleGroups[SingleThreadGroup.ROLES.ordinal()].getByMod(key);
+  public IThreadExecutor role(long key) {
+    return threadExecutors[ThreadGroupEnum.ROLES.ordinal()];
   }
 
   @Override
-  public SingleThreadQueue login() {
-    if (scheduledGroups == null) {
-      return null;
-    }
-
-    return singleGroups[SingleThreadGroup.LOGIN.ordinal()].getByMod(0);
+  public IThreadExecutor login() {
+    return threadExecutors[ThreadGroupEnum.LOGIN.ordinal()];
   }
 
   @Override
   public void addTask2Login(Runnable runnable) {
-    if (scheduledGroups == null || runnable == null) {
+    if (runnable == null) {
       return ;
     }
 
-    singleGroups[SingleThreadGroup.LOGIN.ordinal()].getByMod(0).addTask(runnable);
+    execute(ThreadGroupEnum.LOGIN, 0, runnable);
   }
 
   @Override
   public void addTask2Role(long roleId, Runnable runnable) {
-    if (scheduledGroups == null || roleId < 0 || runnable == null) {
+    if ( roleId < 0 || runnable == null) {
+      return;
+    }
+    execute(ThreadGroupEnum.ROLES, roleId, runnable);
+  }
+
+
+  @Override
+  public void execute(ThreadGroupEnum threadGroup, long executorHash, Runnable runnable) {
+    if (threadGroup == null || runnable == null) {
+      return;
+    }
+    if (threadGroup.isSingle() && executorHash >= 0) {
+      IThreadExecutor executor = threadExecutors[threadGroup.ordinal()];
+      if (executor instanceof SingleThreadQueues singleThreadQueues) {
+        singleThreadQueues.getByMod(executorHash).execute(runnable);
+      }
       return;
     }
 
-    singleGroups[SingleThreadGroup.ROLES.ordinal()].addTask(roleId, runnable);
-  }
-
-  @Override
-  public void addTask2SingleGroup(SingleThreadGroup group, long key, Runnable runnable) {
-    if (singleGroups == null || group == null || key < 0) {
-      return ;
+    Executor executor = executor(threadGroup);
+    if (executor == null) {
+      return;
     }
-
-    singleGroups[group.ordinal()].getByMod(key).addTask(runnable);
+    executor.execute(runnable);
   }
 
   @Override
-  public SingleThreadQueue singleThreadQueue(SingleThreadGroup group, long key) {
-    if (singleGroups == null || group == null) {
-      return null;
-    }
-    return  singleGroups[group.ordinal()].getByMod(key);
-  }
-
-  @Override
-  public ScheduledExecutorService schedulePool(ScheduleThreadGroup schedule) {
-    if (scheduledGroups == null || schedule == null) {
+  public IThreadExecutor executor(ThreadGroupEnum threadGroup) {
+    if (threadGroup == null) {
       return null;
     }
 
-    return scheduledGroups[schedule.ordinal()];
+    return threadExecutors[threadGroup.ordinal()];
   }
 
   @Override
-  public ExecutorService randomPool(RandomThreadGroup randomThreadGroup) {
-    if (randomGroups == null || randomThreadGroup == null) {
-      return null;
-    }
-
-    return randomGroups[randomThreadGroup.ordinal()];
-  }
-
-  @Override
-  public void execute(IThreadGroup threadGroup, long executorHash, Runnable runnable) {
-      if (threadGroup == null) {
-        return;
+  public Executor takeExecutor(long currentThreadId, long key) {
+    for (IThreadExecutor threadExecutor : threadExecutors) {
+      Executor executor = threadExecutor.runThread(currentThreadId, key);
+      if ( executor != null) {
+        return executor;
       }
-
-     if (threadGroup instanceof SingleThreadGroup) {
-       addTask2SingleGroup((SingleThreadGroup) threadGroup, executorHash, runnable);
-     }else if (threadGroup instanceof RandomThreadGroup) {
-       randomPool((RandomThreadGroup) threadGroup).execute(runnable);
-     }else if (threadGroup instanceof ScheduleThreadGroup) {
-       schedulePool((ScheduleThreadGroup) threadGroup).execute(runnable);
     }
+    return null;
+  }
+
+  @Override
+  public ScheduledExecutorService schedulePool(ThreadGroupEnum schedule) {
+    if (schedule == null || !schedule.isSchedule()) {
+      return null;
+    }
+
+    IThreadExecutor executor = threadExecutors[schedule.ordinal()];
+    if (!(executor instanceof ScheduleExecutor scheduleExecutor)) {
+      return null;
+    }
+
+    return scheduleExecutor.getScheduledExecutorService();
+  }
+
+  @Override
+  public ExecutorService randomPool(ThreadGroupEnum threadGroupEnum) {
+    if (threadGroupEnum == null || !threadGroupEnum.isRandom()) {
+      return null;
+    }
+
+    IThreadExecutor executor = threadExecutors[threadGroupEnum.ordinal()];
+    if (!(executor instanceof RandomExecutor randomExecutor)) {
+      return null;
+    }
+
+    return randomExecutor.getExecutorService();
   }
 }

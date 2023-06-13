@@ -46,4 +46,9 @@ public class AuthUidToGatewayEvent implements IEvent {
     public void setUid(long uid) {
         this.uid = uid;
     }
+
+    @Override
+    public long executorHash() {
+        return uid;
+    }
 }

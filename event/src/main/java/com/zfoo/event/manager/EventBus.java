@@ -16,11 +16,8 @@ import com.zfoo.event.model.anno.Bus;
 import com.zfoo.event.model.event.IEvent;
 import com.zfoo.event.model.vo.IEventReceiver;
 import com.zfoo.protocol.collection.CollectionUtils;
-import com.zfoo.protocol.collection.concurrent.CopyOnWriteHashMapLongObject;
-import com.zfoo.thread.IThreadGroup;
 import com.zfoo.thread.ThreadContext;
-import com.zfoo.thread.manager.IThreadBalanceExecutor;
-import com.zfoo.util.SafeRunnable;
+import com.zfoo.thread.enums.ThreadGroupEnum;
 import com.zfoo.util.math.RandomUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,7 +28,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorService;
 
 /**
  * @author godotg
@@ -40,13 +36,10 @@ import java.util.concurrent.ExecutorService;
 public abstract class EventBus {
 
     private static final Logger logger = LoggerFactory.getLogger(EventBus.class);
-
-    private static final CopyOnWriteHashMapLongObject<ExecutorService> threadMap = new CopyOnWriteHashMapLongObject<>();
     /**
      * event mapping
      */
     private static final Map<Class<? extends IEvent>, List<IEventReceiver>> receiverMap = new HashMap<>();
-
     /**
      * Publish the event
      */
@@ -94,11 +87,12 @@ public abstract class EventBus {
      * Use the event thread specified by the hashcode to execute the task
      */
     public static void execute(Bus bus, long executorHash, Runnable runnable) {
-        IThreadGroup threadGroup = bus.getThreadGroup();
+        ThreadGroupEnum threadGroup = bus.getThreadGroup();
         if (threadGroup == null) {
             logger.error("事件异步执行错误， 线程组不能为空 ，busName= {}", bus.name());
             return;
         }
+
         ThreadContext.getIBusinessExecutor().execute(threadGroup, executorHash, runnable);
     }
 
@@ -109,15 +103,14 @@ public abstract class EventBus {
         receiverMap.computeIfAbsent(eventType, it -> new ArrayList<>(1)).add(receiver);
     }
 
-    public static Executor threadExecutor(long currentThreadId) {
-//        todo 这里有问题， net那边也要改
-        return threadMap.getPrimitive(currentThreadId);
-    }
-
     public static void sortReceiver() {
         for (List<IEventReceiver> receiverList : receiverMap.values()) {
             receiverList.sort(Comparator.comparingInt(IEventReceiver::order));
         }
+    }
+
+    public static Executor threadExecutor(long threadId, long key) {
+        return ThreadContext.getIBusinessExecutor().takeExecutor(threadId, key);
     }
 }
 

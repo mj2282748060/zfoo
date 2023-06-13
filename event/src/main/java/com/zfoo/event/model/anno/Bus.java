@@ -12,9 +12,7 @@
  */
 package com.zfoo.event.model.anno;
 
-import com.zfoo.thread.IThreadGroup;
-import com.zfoo.thread.enums.RandomThreadGroup;
-import com.zfoo.thread.enums.SingleThreadGroup;
+import com.zfoo.thread.enums.ThreadGroupEnum;
 
 /**
  *
@@ -23,20 +21,20 @@ public enum Bus {
 
     CURRENT_THREAD(null),
 
-    ROLE_THREAD(SingleThreadGroup.ROLES),
+    ROLE_THREAD(ThreadGroupEnum.ROLES),
 
-    RANDOM_THREAD(RandomThreadGroup.RANDOM),
+    RANDOM_THREAD(ThreadGroupEnum.RANDOM),
 
     VirtualThread(null),
     ;
 
-    final IThreadGroup threadGroup;
+    final ThreadGroupEnum threadGroup;
 
-    Bus(IThreadGroup threadGroup) {
+    Bus(ThreadGroupEnum threadGroup) {
         this.threadGroup = threadGroup;
     }
 
-    public IThreadGroup getThreadGroup() {
+    public ThreadGroupEnum getThreadGroup() {
         return threadGroup;
     }
 
